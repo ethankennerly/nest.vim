@@ -1,0 +1,8 @@
+# goal.vim — `git deliver`: stage everything, commit the pending hourly goal as
+# the subject, then clear it. `git add -A` so the goal's own goals/*.tsv row (and
+# the rest of your working tree) land in the delivery — one unit of progress.
+# With no pending goal (<git-dir>/FOCUS_GOAL absent) it does nothing (no staging).
+# Install by including this file from your global config:
+#   git config --global --add include.path /path/to/nest.vim/gitconfig
+[alias]
+	deliver = "!f(){ gd=$(git rev-parse --absolute-git-dir); [ -f \"$gd/FOCUS_GOAL\" ] && git add -A && git commit -F \"$gd/FOCUS_GOAL\" \"$@\" && rm -f \"$gd/FOCUS_GOAL\"; }; f"

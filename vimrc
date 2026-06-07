@@ -6,13 +6,11 @@ set noswapfile
 set autoindent
 set ignorecase
 
-" Insert sortable date
-nnoremap <F2> G:r !date -v+75M '+\%Y-\%m-\%d \%H:00		'$a<ESC>
-nnoremap <F5> G:r !date -v+75M '+\%Y-\%m-\%d 15:00		'$a<ESC>
+" F2 hourly-goal / F5 daily-goal live in plugin/goal.vim (log the goal + commit it)
 
 " Go to file and change local directory
-nnoremap <F3> :lcd %:p:h:pwd
-nnoremap <F4> gf:lcd %:p:h:pwd
+nnoremap <F3> :lcd %:p:h:pwd
+nnoremap <F4> gf:lcd %:p:h:pwd
 
 filetype plugin indent on
 syntax on
