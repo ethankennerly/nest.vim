@@ -30,7 +30,14 @@
 if exists('g:loaded_goal') | finish | endif
 let g:loaded_goal = 1
 
-" nearest goals/<name> walking up from the current file's directory, or ''
+" Finding a global goals/ when none is in an ancestor, so F2/F5 work from any repo.
+" No hardcoded path: g:goal_search is a list of globs, searched in order, and the
+" newest matching file wins — so it discovers ~/life/goals or ~/Documents/goals on
+" its own. g:goal_dir is an optional exact-path override that beats the search.
+if !exists('g:goal_dir')    | let g:goal_dir = ''                          | endif
+if !exists('g:goal_search') | let g:goal_search = ['~/goals', '~/*/goals'] | endif
+
+" nearest goals/<name>: ancestor walk (per-project) -> g:goal_dir -> g:goal_search
 function! s:NearestGoalFile(name) abort
   let l:dir = expand('%:p:h')
   while 1
@@ -40,7 +47,22 @@ function! s:NearestGoalFile(name) abort
     if l:up ==# l:dir | break | endif
     let l:dir = l:up
   endwhile
-  return ''
+  if !empty(g:goal_dir)
+    let l:g = expand(g:goal_dir) . '/' . a:name
+    if filereadable(l:g) | return l:g | endif
+  endif
+  " search the global locations; newest matching file wins
+  let l:best = '' | let l:bestt = -1
+  for l:pat in g:goal_search
+    let l:base = l:pat =~# '^\~' ? expand('~') . strpart(l:pat, 1) : l:pat
+    for l:d in glob(l:base, 0, 1)
+      let l:cand = l:d . '/' . a:name
+      if filereadable(l:cand) && getftime(l:cand) > l:bestt
+        let l:best = l:cand | let l:bestt = getftime(l:cand)
+      endif
+    endfor
+  endfor
+  return l:best
 endfunction
 
 " upsert a Due-Time<TAB>Goal row: replace the row for a:due if present, else append
@@ -73,7 +95,7 @@ endfunction
 function! s:SetGoal(kind, name, due, commit) abort
   let l:file = s:NearestGoalFile(a:name)
   if empty(l:file)
-    echohl ErrorMsg | echo 'no goals/' . a:name . ' here or in any ancestor' | echohl NONE
+    echohl ErrorMsg | echo 'no goals/' . a:name . ' in an ancestor or g:goal_dir' | echohl NONE
     return
   endif
   let l:goal = trim(input(a:kind . ' goal by ' . a:due . ' (<=50): '))

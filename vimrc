@@ -7,6 +7,8 @@ set autoindent
 set ignorecase
 
 " F2 hourly-goal / F5 daily-goal live in plugin/goal.vim (log the goal + commit it)
+" goal.vim auto-discovers goals/ via g:goal_search (~/goals, ~/*/goals) — finds
+" ~/life/goals or ~/Documents/goals with no hardcoded path.
 
 " Go to file and change local directory
 nnoremap <F3> :lcd %:p:h:pwd

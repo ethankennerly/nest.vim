@@ -65,5 +65,27 @@ set_goal GoalDaily "clean, reply, browse 3 studios"
 assert_eq "clean, reply, browse 3 studios" "$(last_goal "$T/goals/daily-goal.tsv")" "F5 logs daily goal row"
 assert_absent "$T/.git/FOCUS_GOAL" "F5 does NOT write FOCUS_GOAL"
 
+# 6. Global discovery via g:goal_search glob (no hardcoded path): F2 from a repo with
+#    no ancestor goals/ finds the goals file; the subject lands in the working repo.
+GBASE="$(mktemp -d)"; W2="$(mktemp -d)"; trap 'rm -rf "$T" "$GBASE" "$W2"' EXIT
+mkdir -p "$GBASE/life/goals"
+printf 'Due Time\tGoal\tDistraction\n' > "$GBASE/life/goals/hourly-goal.tsv"
+git -C "$W2" init -q; git -C "$W2" config user.email t@t; git -C "$W2" config user.name t
+printf 'code\n' > "$W2/main.txt"; git -C "$W2" add -A; git -C "$W2" commit -qm "init"
+discover(){ printf '%s\n' "$2" | vim -es -u NONE -N \
+  -c "let g:goal_search=['$GBASE/*/goals']" -c "so $PLUGIN" -c "e $W2/main.txt" -c "$1" -c 'qa!' >/dev/null 2>&1; }
+discover GoalHourly "discovered via search"
+assert_eq "discovered via search" "$(last_goal "$GBASE/life/goals/hourly-goal.tsv")" "F2 discovers goals via g:goal_search glob"
+assert_eq "discovered via search" "$(cat "$W2/.git/FOCUS_GOAL" 2>/dev/null)" "F2 writes FOCUS_GOAL to the working repo"
+
+# 7. Newest matching file wins (not alphabetical) when several locations match
+mkdir -p "$GBASE/Documents/goals"
+printf 'Due Time\tGoal\tDistraction\n' > "$GBASE/Documents/goals/hourly-goal.tsv"
+touch -t 200001010000 "$GBASE/Documents/goals/hourly-goal.tsv"   # Documents = old
+touch "$GBASE/life/goals/hourly-goal.tsv"                        # life = newest
+discover GoalHourly "newest wins"
+assert_eq "newest wins" "$(last_goal "$GBASE/life/goals/hourly-goal.tsv")" "newest matching goals file wins"
+assert_eq "Due Time	Goal	Distraction" "$(tail -n1 "$GBASE/Documents/goals/hourly-goal.tsv")" "older location left untouched"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
